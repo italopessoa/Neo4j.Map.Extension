@@ -9,16 +9,16 @@ using System.Reflection;
 namespace Neo4j.Map.Extension.Map
 {
     /// <summary>
-    /// 
+    /// Neo4j extension methods
     /// </summary>
     public static class NodeExtension
     {
         /// <summary>
-        /// 
+        /// Map Neo4j node to a custom classe
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="node"></param>
-        /// <returns></returns>
+        /// <typeparam name="T">Custom class. The class should inherit from <see cref="Neo4jNode"/></typeparam>
+        /// <param name="node">Neo4j node <see cref="INode"/></param>
+        /// <returns>Mapped object</returns>
         public static T Map<T>(this object node) where T : Neo4jNode
         {
             T result = (T)Activator.CreateInstance(typeof(T));
@@ -60,6 +60,12 @@ namespace Neo4j.Map.Extension.Map
             return result;
         }
 
+        /// <summary>
+        /// Extract Enum value description
+        /// </summary>
+        /// <param name="propertyInfo">Custom class enum property</param>
+        /// <param name="currentPropertyValue">Neo4j node property value</param>
+        /// <returns>Enum value</returns>
         private static object TryGetEnumValue(PropertyInfo propertyInfo, object currentPropertyValue)
         {
             foreach (var enumValue in propertyInfo.PropertyType.GetEnumValues())
