@@ -5,12 +5,6 @@ namespace Neo4j.Map.Extension.Model
 {
     public abstract class Neo4jNode
     {
-        public IReadOnlyDictionary<string, object> Properties
-        {
-            get; set;
-        }
-
-
         public long Id
         {
             get; set;

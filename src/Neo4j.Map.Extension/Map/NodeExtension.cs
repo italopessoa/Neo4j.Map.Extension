@@ -28,10 +28,6 @@ namespace Neo4j.Map.Extension.Map
                 IEnumerable<Neo4jPropertyAttribute> attrs = propInfo.GetCustomAttributes<Neo4jPropertyAttribute>(false);
                 foreach (Neo4jPropertyAttribute attr in attrs)
                 {
-                    if (propInfo.PropertyType.IsEnum)
-                    {
-                        propInfo.PropertyType.IsEnumDefined("Maria");
-                    }
                     string propName = propInfo.Name;
                     string neo4jAttr = attr.Name;
                     neo4jModelProperties.Add(neo4jAttr, propName);
