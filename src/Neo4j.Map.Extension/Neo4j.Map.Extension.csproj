@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Authors>Italo Pessoa</Authors>
+    <Company />
+    <PackageLicenseUrl>https://github.com/italopessoa/Neo4j.Map.Extension/blob/master/LICENSE</PackageLicenseUrl>
+    <RepositoryUrl>https://github.com/italopessoa/Neo4j.Map.Extension</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <NeutralLanguage>en</NeutralLanguage>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\netstandard2.0\Neo4j.Map.Extension.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\netstandard2.0\Neo4j.Map.Extension.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Attributes\" />
+    <Folder Include="Map\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Neo4j.Driver" Version="1.5.2" />
+  </ItemGroup>
+
+</Project>
