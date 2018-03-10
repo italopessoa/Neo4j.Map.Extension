@@ -1,0 +1,69 @@
+﻿using Neo4j.Driver.V1;
+using System;
+using System.Threading.Tasks;
+
+namespace Neo4j.Map.Extension.Samples
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Creating sample data");
+            CreateSampleNodes();
+            Sample1().GetAwaiter();
+            Sample2().GetAwaiter();
+            Console.ReadKey();
+            Console.WriteLine("Removing sample data");
+            DeleteSampleNodes();
+            Console.WriteLine("Done");
+            Console.ReadKey();
+        }
+
+        private static async Task Sample1()
+        {
+            MapNodeToCustomClassSample sample1 = new MapNodeToCustomClassSample();
+            var nodes = await sample1.Find();
+            foreach (var node in nodes)
+            {
+                Console.WriteLine(node);
+            }
+        }
+
+        private static async Task Sample2()
+        {
+            MapNodeToCustomClassWithEnumPropertySample sample2 = new MapNodeToCustomClassWithEnumPropertySample();
+            var nodes = await sample2.Find();
+            foreach (var node in nodes)
+            {
+                Console.WriteLine(node);
+            }
+        }
+
+        static void CreateSampleNodes()
+        {
+            IDriver driver = GraphDatabase.Driver("bolt://127.0.0.1:7687", AuthTokens.None);
+            using (ISession session = driver.Session(AccessMode.Write))
+            {
+                session.Run("CREATE (:Person {name:'Person 1'})");
+                session.Run("CREATE (:Person {name:'Person 2'})");
+                session.Run("CREATE (:Person {name:'Person 3'})");
+                session.Run("CREATE (:Person {name:'Person 4'})");
+
+                session.Run("CREATE (:Employee {name:'Employee 1', occupation:'Car Mechanic' })");
+                session.Run("CREATE (:Employee {name:'Employee 2', occupation:'Doctor'})");
+                session.Run("CREATE (:Employee {name:'Employee 3', occupation:'Carpenter'})");
+
+            }
+        }
+
+        static void DeleteSampleNodes()
+        {
+            IDriver driver = GraphDatabase.Driver("bolt://127.0.0.1:7687", AuthTokens.None);
+            using (ISession session = driver.Session(AccessMode.Write))
+            {
+                session.Run("MATCH (p:Person) DETACH DELETE p");
+                session.Run("MATCH (c:Car) DETACH DELETE c");
+            }
+        }
+    }
+}
