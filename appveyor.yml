@@ -9,6 +9,9 @@ dotnet_csproj:
   file: '**\*.csproj'
   version: '{version}-alpha'
   package_version: '{version}-alpha'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
 build_script:
 - cmd: dotnet pack src\Neo4j.Map.Extension\Neo4j.Map.Extension.csproj -c Release
 artifacts:
