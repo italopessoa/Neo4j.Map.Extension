@@ -20,7 +20,6 @@ namespace Neo4j.Map.Extension.Samples
                     nodes.Add(r[r.Keys[0]].Map<Person>());
                 });
             }
-
             return nodes;
         }
     }

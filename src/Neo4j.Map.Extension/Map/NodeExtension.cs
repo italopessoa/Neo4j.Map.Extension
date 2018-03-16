@@ -75,7 +75,7 @@ namespace Neo4j.Map.Extension.Map
             switch (queryType)
             {
                 case CypherQueryType.Create:
-                    query=  ScaffoldCreateQuery(node);
+                    query = CreationQuery(node);
                     break;
                 case CypherQueryType.Delete:
                     break;
@@ -83,7 +83,12 @@ namespace Neo4j.Map.Extension.Map
             return query;
         }
 
-        private static string ScaffoldCreateQuery(Neo4jNode node)
+        /// <summary>
+        /// Generate cypher CREATE query
+        /// </summary>
+        /// <param name="node">Node oject</param>
+        /// <returns>CREATE query</returns>
+        private static string CreationQuery(Neo4jNode node)
         {
             string labelName = string.Empty;
             Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
@@ -143,19 +148,23 @@ namespace Neo4j.Map.Extension.Map
             return currentPropertyValue;
         }
 
+        /// <summary>
+        /// Get enum value description
+        /// </summary>
+        /// <param name="propertyInfo">Object propoerty</param>
+        /// <param name="currentPropertyValue">Property value</param>
+        /// <returns>Enum description</returns>
         private static object TryGetEnumValueDescription(PropertyInfo propertyInfo, object currentPropertyValue)
         {
             foreach (var enumValue in propertyInfo.PropertyType.GetEnumValues())
             {
                 MemberInfo enumInfo = propertyInfo.PropertyType.GetMember(enumValue.ToString())[0];
                 DescriptionAttribute descriptionAttribute = enumInfo.GetCustomAttribute<DescriptionAttribute>();
-                if ((descriptionAttribute != null && descriptionAttribute.Description.Equals(currentPropertyValue))
-                    || enumInfo.Name.Equals(currentPropertyValue.ToString()))
-                {
+                if (descriptionAttribute != null && descriptionAttribute.Description.Equals(currentPropertyValue))
                     return descriptionAttribute.Description;
-                }
+                else if (enumInfo.Name.Equals(currentPropertyValue.ToString()))
+                    return enumInfo.Name;
             }
-
             return null;
         }
     }

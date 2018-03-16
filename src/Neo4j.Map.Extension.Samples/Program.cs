@@ -1,4 +1,5 @@
 ﻿using Neo4j.Driver.V1;
+using Neo4j.Map.Extension.Samples.Models;
 using System;
 using System.Threading.Tasks;
 
@@ -8,15 +9,19 @@ namespace Neo4j.Map.Extension.Samples
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Creating sample data");
-            CreateSampleNodes();
-            Sample1().GetAwaiter();
-            Sample2().GetAwaiter();
+            //Console.WriteLine("Creating sample data");
+            //CreateSampleNodes();
+            //Sample1().GetAwaiter();
+            //Sample2().GetAwaiter();
+            //Console.ReadKey();
+            //Console.WriteLine("Removing sample data");
+            //DeleteSampleNodes();
+            //Console.WriteLine("Done");
+            //Console.ReadKey();
+            //Console.WriteLine("Generate cypher query");
+            Sample3().GetAwaiter();
             Console.ReadKey();
-            Console.WriteLine("Removing sample data");
-            DeleteSampleNodes();
-            Console.WriteLine("Done");
-            Console.ReadKey();
+
         }
 
         private static async Task Sample1()
@@ -37,6 +42,17 @@ namespace Neo4j.Map.Extension.Samples
             {
                 Console.WriteLine(node);
             }
+        }
+
+        private static async Task Sample3()
+        {
+            MapNodeToCypher sample3 = new MapNodeToCypher();
+            Employee employee = new Employee
+            {
+                Name = "employee name",
+                Ocuppation = Ocuppation.Carpenter
+            };
+            Console.WriteLine(sample3.CreationQuery(employee));
         }
 
         static void CreateSampleNodes()
