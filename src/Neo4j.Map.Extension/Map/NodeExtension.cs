@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -78,6 +79,7 @@ namespace Neo4j.Map.Extension.Map
                     query = CreationQuery(node);
                     break;
                 case CypherQueryType.Delete:
+                    query = DeleteQuery(node);
                     break;
             }
             return query;
@@ -86,7 +88,7 @@ namespace Neo4j.Map.Extension.Map
         /// <summary>
         /// Generate cypher CREATE query
         /// </summary>
-        /// <param name="node">Node oject</param>
+        /// <param name="node">Node object</param>
         /// <returns>CREATE query</returns>
         private static string CreationQuery(Neo4jNode node)
         {
@@ -122,6 +124,35 @@ namespace Neo4j.Map.Extension.Map
 
             string cypher = sb.ToString().Replace("\"", "'");
             return cypher;
+        }
+
+        /// <summary>
+        /// Generate cypher DELETE query
+        /// </summary>
+        /// <param name="node">Node object</param>
+        /// <returns>DELETE query</returns>
+        private static string DeleteQuery(Neo4jNode node)
+        {
+            string labelName = string.Empty;
+            Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null)
+            {
+                labelName = label.Name;
+            }
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            List<PropertyInfo> properties = node.GetType().GetProperties().ToList();
+            var uuid = properties.FirstOrDefault(p => p.Name.Equals("UUID", StringComparison.InvariantCultureIgnoreCase));
+            var id = properties.FirstOrDefault(p => p.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase));
+            if (uuid != null)
+            {
+                return $"MATCH (n:{labelName} {{uuid:'{uuid.GetValue(node)}'}} DETACH DELETE n";
+            }
+            else if (id != null)
+            {
+                return $"MATCH (n:{labelName} {{id:'{id.GetValue(node)}'}} DETACH DELETE n";
+            }
+
+            throw new Neo4jMappingException("No node identity found.", new Exception("Check your custom class attributes."));
         }
 
         /// <summary>

@@ -1,6 +1,8 @@
 ﻿using Neo4j.Driver.V1;
+using Neo4j.Map.Extension.Map;
 using Neo4j.Map.Extension.Samples.Models;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Neo4j.Map.Extension.Samples
@@ -19,7 +21,8 @@ namespace Neo4j.Map.Extension.Samples
             //Console.WriteLine("Done");
             //Console.ReadKey();
             //Console.WriteLine("Generate cypher query");
-            Sample3().GetAwaiter();
+            //Sample3().GetAwaiter();
+            Sample4().GetAwaiter();
             Console.ReadKey();
 
         }
@@ -53,6 +56,17 @@ namespace Neo4j.Map.Extension.Samples
                 Ocuppation = Ocuppation.Carpenter
             };
             Console.WriteLine(sample3.CreationQuery(employee));
+        }
+
+        private static async Task Sample4()
+        {
+            MapNodeToCustomClassWithEnumPropertySample sample4 = new MapNodeToCustomClassWithEnumPropertySample();
+            List<Employee> nodes = await sample4.Find();
+            foreach (var node in nodes)
+            {
+                Console.WriteLine(node);
+                Console.WriteLine(node.MapToCypher(Model.CypherQueryType.Delete));
+            }
         }
 
         static void CreateSampleNodes()
