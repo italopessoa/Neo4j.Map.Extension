@@ -1,10 +1,13 @@
 ﻿using Neo4j.Driver.V1;
 using Neo4j.Map.Extension.Attributes;
 using Neo4j.Map.Extension.Model;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Reflection;
+using System.Text;
 
 namespace Neo4j.Map.Extension.Map
 {
@@ -61,6 +64,98 @@ namespace Neo4j.Map.Extension.Map
         }
 
         /// <summary>
+        /// Generate cypher query from object model
+        /// </summary>
+        /// <typeparam name="T">Custom class type</typeparam>
+        /// <param name="node">Current node</param>
+        /// <param name="queryType">The type of cypher query to be generated <see cref="CypherQueryType"/> </param>
+        /// <returns>Cypher query</returns>
+        public static string MapToCypher<T>(this T node, CypherQueryType queryType) where T : Neo4jNode
+        {
+            string query = String.Empty;
+            switch (queryType)
+            {
+                case CypherQueryType.Create:
+                    query = CreationQuery(node);
+                    break;
+                case CypherQueryType.Delete:
+                    query = DeleteQuery(node);
+                    break;
+            }
+            return query;
+        }
+
+        /// <summary>
+        /// Generate cypher CREATE query
+        /// </summary>
+        /// <param name="node">Node object</param>
+        /// <returns>CREATE query</returns>
+        private static string CreationQuery(Neo4jNode node)
+        {
+            string labelName = string.Empty;
+            Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null)
+            {
+                labelName = label.Name;
+            }
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            foreach (PropertyInfo propInfo in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            {
+                Neo4jPropertyAttribute attr = propInfo.GetCustomAttribute<Neo4jPropertyAttribute>();
+                if (attr != null)
+                {
+                    if (propInfo.PropertyType.IsEnum)
+                        values.Add(attr.Name, TryGetEnumValueDescription(propInfo, propInfo.GetValue(node)));
+                    else
+                        values.Add(attr.Name, propInfo.GetValue(node));
+                }
+            }
+
+            StringBuilder sb = new StringBuilder();
+
+            sb.Append($"CREATE (:{labelName} {{");
+            string comma = "";
+            foreach (KeyValuePair<string, object> keyValue in values)
+            {
+                sb.Append($"{comma}{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
+                comma = ", ";
+            }
+            sb.Append("})");
+
+            string cypher = sb.ToString().Replace("\"", "'");
+            return cypher;
+        }
+
+        /// <summary>
+        /// Generate cypher DELETE query
+        /// </summary>
+        /// <param name="node">Node object</param>
+        /// <returns>DELETE query</returns>
+        private static string DeleteQuery(Neo4jNode node)
+        {
+            string labelName = string.Empty;
+            Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null)
+            {
+                labelName = label.Name;
+            }
+            Dictionary<string, object> values = new Dictionary<string, object>();
+            List<PropertyInfo> properties = node.GetType().GetProperties().ToList();
+            var uuid = properties.FirstOrDefault(p => p.Name.Equals("UUID", StringComparison.InvariantCultureIgnoreCase));
+            var id = properties.FirstOrDefault(p => p.Name.Equals("Id", StringComparison.InvariantCultureIgnoreCase));
+            if (uuid != null)
+            {
+                return $"MATCH (n:{labelName} {{uuid:'{uuid.GetValue(node)}'}} DETACH DELETE n";
+            }
+            else if (id != null)
+            {
+                return $"MATCH (n:{labelName} {{id:'{id.GetValue(node)}'}} DETACH DELETE n";
+            }
+
+            throw new Neo4jMappingException("No node identity found.", new Exception("Check your custom class attributes."));
+        }
+
+        /// <summary>
         /// Extract Enum value description
         /// </summary>
         /// <param name="propertyInfo">Custom class enum property</param>
@@ -82,6 +177,26 @@ namespace Neo4j.Map.Extension.Map
             if (currentPropertyValue == null)
                 throw new Neo4jMappingException($"\"{currentPropertyValue}\" is not a valid value for {propertyInfo.PropertyType.FullName}");
             return currentPropertyValue;
+        }
+
+        /// <summary>
+        /// Get enum value description
+        /// </summary>
+        /// <param name="propertyInfo">Object propoerty</param>
+        /// <param name="currentPropertyValue">Property value</param>
+        /// <returns>Enum description</returns>
+        private static object TryGetEnumValueDescription(PropertyInfo propertyInfo, object currentPropertyValue)
+        {
+            foreach (var enumValue in propertyInfo.PropertyType.GetEnumValues())
+            {
+                MemberInfo enumInfo = propertyInfo.PropertyType.GetMember(enumValue.ToString())[0];
+                DescriptionAttribute descriptionAttribute = enumInfo.GetCustomAttribute<DescriptionAttribute>();
+                if (descriptionAttribute != null && descriptionAttribute.Description.Equals(currentPropertyValue))
+                    return descriptionAttribute.Description;
+                else if (enumInfo.Name.Equals(currentPropertyValue.ToString()))
+                    return enumInfo.Name;
+            }
+            return null;
         }
     }
 }
