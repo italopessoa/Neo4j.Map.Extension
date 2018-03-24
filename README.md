@@ -16,7 +16,7 @@ You can install Neo4j.Map.Extension using
 `> dotnet add package Neo4j.Map.Extension`
 
 #### How to use it?
-There are two attributes that you can use to set up your custom class, ``Neo4jLabelAttribute`` to map your classes and ``Neo4jPropertyAttribute`` to map your properties. And the most important point any class that you want the values to be bound by Neo4j.Map.Extension, shold inherit from ``Neo4jNode`` class.
+There are two attributes that you can use to set up your custom class, ``Neo4jLabelAttribute`` to map your classes and ``Neo4jPropertyAttribute`` to map your properties.  If you have any class which you want its properties values to be bind by ``Neo4j.Map.Extension``, it must inherit from ``Neo4jNode`` class.
 
 ```C#
 [Neo4jLabel("Employee")]
@@ -34,7 +34,7 @@ class Employee : Neo4jNode
     }
 }
 ```
-``UUID`` is a default property inherted from ``Neo4jNode`` class. UUID is a value generate by to guarantee that all your nodes have one unique identity value. You can read more about it on [neo4j-uuid](https://github.com/graphaware/neo4j-uuid)
+``UUID`` is a default property inherited from the ``Neo4jNode`` class. UUID is a value generated to guarantee that all your nodes have one unique identity value. You can read more about it on [neo4j-uuid](https://github.com/graphaware/neo4j-uuid)
 
 #### Map() - Binding node values to properties
 
