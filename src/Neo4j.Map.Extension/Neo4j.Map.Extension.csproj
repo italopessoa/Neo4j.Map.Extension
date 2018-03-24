@@ -7,11 +7,16 @@
     <PackageLicenseUrl>https://github.com/italopessoa/Neo4j.Map.Extension/blob/master/LICENSE</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/italopessoa/Neo4j.Map.Extension</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
     <Version>1.1.0-alpha</Version>
     <NeutralLanguage>en</NeutralLanguage>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <Description>A simple tool that was born from an experiment while I was learning how to use Neo4j.Driver to execute queries in Neo4j. After some repetitive query parses, I tried to make it more abstract for me, using some attributes to configure a graph node as a custom C# class.</Description>
+    <PackageProjectUrl>https://github.com/italopessoa/Neo4j.Map.Extension</PackageProjectUrl>
+    <PackageTags>C# dotnet  mapper Cypher NoSql Graph Bolt Neo4j</PackageTags>
+    <PackageReleaseNotes>Support to neo4j simple nodes mapping. Enum mapping. Doesn't support relationship mapping yet. Add Cypher query (Create and Delete) generation. Add new icon.</PackageReleaseNotes>
+    <PackageIconUrl>https://github.com/italopessoa/Neo4j.Map.Extension/blob/master/icon.png</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
