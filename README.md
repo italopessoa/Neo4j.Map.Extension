@@ -14,3 +14,41 @@ You can install Neo4j.Map.Extension using
 `> paket add Neo4j.Map.Extension`
 #### .NET CLI
 `> dotnet add package Neo4j.Map.Extension`
+
+#### How to use it?
+There are two attributes that you can use to set up your custom class, ``Neo4jLabelAttribute`` to map your classes and ``Neo4jPropertyAttribute`` to map your properties. And the most important point any class that you want the values to be bound by Neo4j.Map.Extension, shold inherit from ``Neo4jNode`` class.
+
+```C#
+[Neo4jLabel("Employee")]
+class Employee : Neo4jNode
+{
+    [Neo4jProperty(Name = "name")]
+    public string Name { get; set; }
+
+    [Neo4jProperty(Name = "occupation")]
+    public Ocuppation Ocuppation { get; set; }
+
+    public override string ToString()
+    {
+        return $"Person {{Employee: '{UUID}', Name: '{Name}', Occupation: '{Ocuppation}'}}";
+    }
+}
+```
+``UUID`` is a default property inherted from ``Neo4jNode`` class. UUID is a value generate by to guarantee that all your nodes have one unique identity value. You can read more about it on [neo4j-uuid](https://github.com/graphaware/neo4j-uuid)
+
+#### Map() - Binding node values to properties
+
+Once you get the return from Neo4j server, you can use the ``Map`` extension method to check and bind all the values of you graph node into your custom class.
+
+```C#
+IDriver driver = GraphDatabase.Driver("bolt://127.0.0.1:7687", AuthTokens.None);
+List<Employee> nodes = new List<Employee>();
+using (ISession session = driver.Session(AccessMode.Read))
+{
+    IStatementResultCursor result = await session.RunAsync("MATCH (n:Employee) return n");
+    await result.ForEachAsync(r =>
+    {
+        nodes.Add(r[r.Keys[0]].Map<Employee>());
+    });
+}
+```
