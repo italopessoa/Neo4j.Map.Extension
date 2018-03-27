@@ -1,5 +1,6 @@
 ﻿using Neo4j.Driver.V1;
 using Neo4j.Map.Extension.Map;
+using Neo4j.Map.Extension.Model;
 using Neo4j.Map.Extension.Samples.Models;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,8 @@ namespace Neo4j.Map.Extension.Samples
             //Console.ReadKey();
             //Console.WriteLine("Generate cypher query");
             //Sample3().GetAwaiter();
-            Sample4().GetAwaiter();
+            //Sample4().GetAwaiter();
+            Sample5().GetAwaiter();
             Console.ReadKey();
 
         }
@@ -65,7 +67,19 @@ namespace Neo4j.Map.Extension.Samples
             foreach (var node in nodes)
             {
                 Console.WriteLine(node);
-                Console.WriteLine(node.MapToCypher(Model.CypherQueryType.Delete));
+                Console.WriteLine(node.MapToCypher(CypherQueryType.Delete));
+            }
+        }
+
+        private static async Task Sample5()
+        {
+            MapNodeToCustomClassWithEnumPropertySample sample4 = new MapNodeToCustomClassWithEnumPropertySample();
+            List<Employee> nodes = await sample4.Find();
+            foreach (var node in nodes)
+            {
+                Console.WriteLine(node);
+                node.UUID = null;
+                Console.WriteLine(node.MapToCypher(Model.CypherQueryType.Match));
             }
         }
 
