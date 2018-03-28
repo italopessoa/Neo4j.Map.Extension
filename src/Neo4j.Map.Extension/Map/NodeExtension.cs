@@ -155,14 +155,14 @@ namespace Neo4j.Map.Extension.Map
 
             StringBuilder sb = new StringBuilder();
 
-            sb.Append($"CREATE (:{labelName} {{");
+            sb.Append($"CREATE (n:{labelName} {{");
             string comma = "";
             foreach (KeyValuePair<string, object> keyValue in values)
             {
                 sb.Append($"{comma}{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
                 comma = ", ";
             }
-            sb.Append("})");
+            sb.Append("}) RETURN n");
 
             string cypher = sb.ToString().Replace("\"", "'");
             return cypher;
