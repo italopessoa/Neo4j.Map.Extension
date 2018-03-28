@@ -81,8 +81,52 @@ namespace Neo4j.Map.Extension.Map
                 case CypherQueryType.Delete:
                     query = DeleteQuery(node);
                     break;
+                case CypherQueryType.Match:
+                    query = MatchQuery(node);
+                    break;
             }
             return query;
+        }
+
+        private static string MatchQuery<T>(T node) where T : Neo4jNode
+        {
+            string labelName = string.Empty;
+            string cypher = string.Empty;
+            Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null)
+            {
+                labelName = label.Name;
+            }
+            var uuidProp = node.GetType().GetProperties().FirstOrDefault(p => p.Name.Equals("UUID", StringComparison.InvariantCultureIgnoreCase));
+            if (!String.IsNullOrEmpty(uuidProp?.GetValue(node)?.ToString()))
+            {
+                cypher = $"MATCH (n:{labelName} {{uuid: '{uuidProp.GetValue(node)}'}}) RETURN n";
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                Dictionary<string, object> values = new Dictionary<string, object>();
+                foreach (PropertyInfo propInfo in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                {
+                    Neo4jPropertyAttribute attr = propInfo.GetCustomAttribute<Neo4jPropertyAttribute>();
+                    if (attr != null)
+                    {
+                        if (propInfo.PropertyType.IsEnum)
+                            values.Add(attr.Name, TryGetEnumValueDescription(propInfo, propInfo.GetValue(node)));
+                        else
+                            values.Add(attr.Name, propInfo.GetValue(node));
+                    }
+                }
+                foreach (KeyValuePair<string, object> keyValue in values)
+                {
+                    if (int.TryParse(keyValue.Value.ToString(), out int x))
+                        sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}={keyValue.Value} ");
+                    else sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value}.*' ");
+                }
+                cypher = $"MATCH (n:{labelName}) WHERE {sb.ToString()} RETURN n";
+            }
+
+            return cypher;
         }
 
         /// <summary>
@@ -113,14 +157,14 @@ namespace Neo4j.Map.Extension.Map
 
             StringBuilder sb = new StringBuilder();
 
-            sb.Append($"CREATE (:{labelName} {{");
+            sb.Append($"CREATE (n:{labelName} {{");
             string comma = "";
             foreach (KeyValuePair<string, object> keyValue in values)
             {
                 sb.Append($"{comma}{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
                 comma = ", ";
             }
-            sb.Append("})");
+            sb.Append("}) RETURN n");
 
             string cypher = sb.ToString().Replace("\"", "'");
             return cypher;
@@ -191,7 +235,7 @@ namespace Neo4j.Map.Extension.Map
             {
                 MemberInfo enumInfo = propertyInfo.PropertyType.GetMember(enumValue.ToString())[0];
                 DescriptionAttribute descriptionAttribute = enumInfo.GetCustomAttribute<DescriptionAttribute>();
-                if (descriptionAttribute != null && descriptionAttribute.Description.Equals(currentPropertyValue))
+                if (descriptionAttribute != null && enumInfo.Name.Equals(currentPropertyValue.ToString()))
                     return descriptionAttribute.Description;
                 else if (enumInfo.Name.Equals(currentPropertyValue.ToString()))
                     return enumInfo.Name;
