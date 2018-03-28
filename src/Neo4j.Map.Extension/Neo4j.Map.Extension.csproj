@@ -16,7 +16,7 @@
     <PackageProjectUrl>https://github.com/italopessoa/Neo4j.Map.Extension</PackageProjectUrl>
     <PackageTags>C# dotnet  mapper Cypher NoSql Graph Bolt Neo4j</PackageTags>
     <PackageReleaseNotes>Support to neo4j simple nodes mapping. Enum mapping. Doesn't support relationship mapping yet. Add Cypher query (Create and Delete) generation. Add new icon.</PackageReleaseNotes>
-    <PackageIconUrl>https://github.com/italopessoa/Neo4j.Map.Extension/blob/master/icon.png</PackageIconUrl>
+    <PackageIconUrl>https://raw.githubusercontent.com/italopessoa/Neo4j.Map.Extension/master/icon.png</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
