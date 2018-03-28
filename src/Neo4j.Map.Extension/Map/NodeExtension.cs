@@ -119,7 +119,9 @@ namespace Neo4j.Map.Extension.Map
                 }
                 foreach (KeyValuePair<string, object> keyValue in values)
                 {
-                    sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value }.*' ");
+                    if (int.TryParse(keyValue.Value.ToString(), out int x))
+                        sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}={keyValue.Value} ");
+                    else sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value}.*' ");
                 }
                 cypher = $"MATCH (n:{labelName}) WHERE {sb.ToString()} RETURN n";
             }
