@@ -109,12 +109,13 @@ namespace Neo4j.Map.Extension.Map
                 foreach (PropertyInfo propInfo in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
                 {
                     Neo4jPropertyAttribute attr = propInfo.GetCustomAttribute<Neo4jPropertyAttribute>();
-                    if (attr != null)
+                    var value = propInfo.GetValue(node);
+                    if (attr != null && value != null)
                     {
                         if (propInfo.PropertyType.IsEnum)
-                            values.Add(attr.Name, TryGetEnumValueDescription(propInfo, propInfo.GetValue(node)));
+                            values.Add(attr.Name, TryGetEnumValueDescription(propInfo, value));
                         else
-                            values.Add(attr.Name, propInfo.GetValue(node));
+                            values.Add(attr.Name, value);
                     }
                 }
                 foreach (KeyValuePair<string, object> keyValue in values)
