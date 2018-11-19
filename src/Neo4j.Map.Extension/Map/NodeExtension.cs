@@ -72,11 +72,14 @@ namespace Neo4j.Map.Extension.Map
         /// <returns>Cypher query</returns>
         public static string MapToCypher<T>(this T node, CypherQueryType queryType) where T : Neo4jNode
         {
-            string query = String.Empty;
+            string query = string.Empty;
             switch (queryType)
             {
                 case CypherQueryType.Create:
                     query = CreationQuery(node);
+                    break;
+                case CypherQueryType.Merge:
+                    query = CreationQuery(node,true);
                     break;
                 case CypherQueryType.Delete:
                     query = DeleteQuery(node);
@@ -135,7 +138,7 @@ namespace Neo4j.Map.Extension.Map
         /// </summary>
         /// <param name="node">Node object</param>
         /// <returns>CREATE query</returns>
-        private static string CreationQuery(Neo4jNode node)
+        private static string CreationQuery(Neo4jNode node, bool useMerge = false)
         {
             string labelName = string.Empty;
             Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
@@ -158,7 +161,7 @@ namespace Neo4j.Map.Extension.Map
 
             StringBuilder sb = new StringBuilder();
 
-            sb.Append($"CREATE (n:{labelName} {{");
+            sb.Append($"{(useMerge ? "MERGE" : "CREATE")} (n:{labelName} {{");
             string comma = "";
             foreach (KeyValuePair<string, object> keyValue in values)
             {

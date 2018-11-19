@@ -1,4 +1,5 @@
 ﻿using Neo4j.Map.Extension.Attributes;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 
 namespace Neo4j.Map.Extension.Model
@@ -21,6 +22,7 @@ namespace Neo4j.Map.Extension.Model
         /// </summary>
         /// <remarks>https://github.com/graphaware/neo4j-uuid</remarks>
         [Neo4jProperty(Name = "uuid")]
+        [JsonIgnore]
         public string UUID { get; set; }
     }
 }

@@ -13,7 +13,7 @@ namespace Neo4j.Map.Extension.Samples
         static void Main(string[] args)
         {
             //Console.WriteLine("Creating sample data");
-            //CreateSampleNodes();
+            CreateSampleNodes();
             //Sample1().GetAwaiter();
             //Sample2().GetAwaiter();
             //Console.ReadKey();
@@ -22,9 +22,9 @@ namespace Neo4j.Map.Extension.Samples
             //Console.WriteLine("Done");
             //Console.ReadKey();
             //Console.WriteLine("Generate cypher query");
-            //Sample3().GetAwaiter();
+            Sample3().GetAwaiter();
             //Sample4().GetAwaiter();
-            Sample5().GetAwaiter();
+            //Sample5().GetAwaiter();
             Console.ReadKey();
 
         }
@@ -98,6 +98,10 @@ namespace Neo4j.Map.Extension.Samples
                 session.Run("CREATE (:Employee {name:'Employee 3', occupation:'Carpenter'})");
 
             }
+            using (ISession session = driver.Session(AccessMode.Write))
+            {
+                IStatementResult result = session.Run("match (n {uuid: 'b6d1eca0-2fe4-11e8-bcfe-2cd05a628834'}) detach delete n");
+            } 
         }
 
         static void DeleteSampleNodes()

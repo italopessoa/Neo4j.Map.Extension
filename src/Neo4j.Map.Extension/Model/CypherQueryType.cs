@@ -7,6 +7,7 @@ namespace Neo4j.Map.Extension.Model
     public enum CypherQueryType
     {
         Create,
+        Merge,
         Delete,
         Match
     }
