@@ -13,7 +13,7 @@ namespace Neo4j.Map.Extension.Samples
         static void Main(string[] args)
         {
             //Console.WriteLine("Creating sample data");
-            CreateSampleNodes();
+            //CreateSampleNodes();
             //Sample1().GetAwaiter();
             //Sample2().GetAwaiter();
             //Console.ReadKey();
@@ -22,9 +22,10 @@ namespace Neo4j.Map.Extension.Samples
             //Console.WriteLine("Done");
             //Console.ReadKey();
             //Console.WriteLine("Generate cypher query");
-            Sample3().GetAwaiter();
+            //Sample3().GetAwaiter();
             //Sample4().GetAwaiter();
             //Sample5().GetAwaiter();
+            new MapRelation().Find();
             Console.ReadKey();
 
         }

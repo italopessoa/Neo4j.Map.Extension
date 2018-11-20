@@ -25,17 +25,7 @@ namespace Neo4j.Map.Extension.Map
         public static T Map<T>(this object node) where T : Neo4jNode
         {
             T result = (T)Activator.CreateInstance(typeof(T));
-            IDictionary<string, string> neo4jModelProperties = new Dictionary<string, string>();
-            foreach (PropertyInfo propInfo in typeof(T).GetProperties())
-            {
-                IEnumerable<Neo4jPropertyAttribute> attrs = propInfo.GetCustomAttributes<Neo4jPropertyAttribute>(false);
-                foreach (Neo4jPropertyAttribute attr in attrs)
-                {
-                    string propName = propInfo.Name;
-                    string neo4jAttr = attr.Name;
-                    neo4jModelProperties.Add(neo4jAttr, propName);
-                }
-            }
+            IDictionary<string, string> neo4jModelProperties = GetNeo4jNodeProperties<T>();
 
             INode nodeAux = node as INode;
             foreach (KeyValuePair<string, string> property in neo4jModelProperties)
@@ -64,6 +54,98 @@ namespace Neo4j.Map.Extension.Map
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <typeparam name="O"></typeparam>
+        /// <typeparam name="D"></typeparam>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        public static T MapRelation<T, O, D>(this object node)
+            where O : Neo4jNode
+            where D : Neo4jNode
+            where T : Neo4jNode//TODO: fix
+        {
+            IDictionary<string, string> neo4jModelProperties = GetNeo4jNodeProperties<T>();
+
+            T result = (T)Activator.CreateInstance(typeof(T));
+
+            IRelationship nodeAux = node as IRelationship;
+            foreach (KeyValuePair<string, string> property in neo4jModelProperties)
+            {
+                if (nodeAux.Properties.ContainsKey(property.Key))
+                {
+                    if (!nodeAux.Properties.ContainsKey(property.Key))
+                        throw new InvalidOperationException($"There is not property named \"{property.Key}\". Check your mapping class and your database schema definition.");
+
+                    PropertyInfo propertyInfo = result.GetType().GetProperty(property.Value);
+                    object currentPropertyValue = nodeAux.Properties[property.Key];
+                    if (propertyInfo.PropertyType.IsEnum)
+                    {
+                        currentPropertyValue = TryGetEnumValue(propertyInfo, currentPropertyValue);
+                    }
+                    else
+                        currentPropertyValue = nodeAux.Properties[property.Key];
+
+                    try
+                    {
+                        propertyInfo.SetValue(result, currentPropertyValue);
+
+                    }
+                    catch (Exception ex)
+                    {
+
+                        throw;
+                    }
+                }
+            }
+            PropertyInfo propertyInfoId = result.GetType().GetProperty("Id");
+            propertyInfoId.SetValue(result, nodeAux.Id);
+
+            PropertyInfo propertyInfoType = result.GetType().GetProperty("RelationType");
+            propertyInfoType.SetValue(result, nodeAux.Type);
+
+            return result;
+        }
+
+        public static T MapRelation<T, O, D>(this IReadOnlyDictionary<string, object> values) 
+            where T : Neo4jNode
+            where O : Neo4jNode
+            where D : Neo4jNode
+        {
+            IDictionary<string, string> neo4jModelProperties = GetNeo4jNodeProperties<T>();
+
+            O originValue = values["origin"].Map<O>();
+            D destinyValue = values["destiny"].Map<D>();
+            T relation = values["relation"].MapRelation<T, O, D>();
+
+            PropertyInfo originPropertyInfo = relation.GetType().GetProperty("Origin");
+            PropertyInfo destinyPropertyInfo = relation.GetType().GetProperty("Destiny");
+
+            originPropertyInfo.SetValue(relation, originValue);
+            destinyPropertyInfo.SetValue(relation, destinyValue);
+            return relation;
+        }
+
+        private static IDictionary<string, string> GetNeo4jNodeProperties<T>()
+            where T : Neo4jNode
+        {
+            IDictionary<string, string> neo4jModelProperties = new Dictionary<string, string>();
+            foreach (PropertyInfo propInfo in typeof(T).GetProperties())
+            {
+                IEnumerable<Neo4jPropertyAttribute> attrs = propInfo.GetCustomAttributes<Neo4jPropertyAttribute>(false);
+                foreach (Neo4jPropertyAttribute attr in attrs)
+                {
+                    string propName = propInfo.Name;
+                    string neo4jAttr = attr.Name;
+                    neo4jModelProperties.Add(neo4jAttr, propName);
+                }
+            }
+
+            return neo4jModelProperties;
+        }
+
+        /// <summary>
         /// Generate cypher query from object model
         /// </summary>
         /// <typeparam name="T">Custom class type</typeparam>
@@ -79,7 +161,7 @@ namespace Neo4j.Map.Extension.Map
                     query = CreationQuery(node);
                     break;
                 case CypherQueryType.Merge:
-                    query = CreationQuery(node,true);
+                    query = CreationQuery(node, true);
                     break;
                 case CypherQueryType.Delete:
                     query = DeleteQuery(node);
@@ -137,6 +219,7 @@ namespace Neo4j.Map.Extension.Map
         /// Generate cypher CREATE query
         /// </summary>
         /// <param name="node">Node object</param>
+        /// /// <param name="useMerge">Indicate whether it sould use MERGE instead of CREATE or not. </param>
         /// <returns>CREATE query</returns>
         private static string CreationQuery(Neo4jNode node, bool useMerge = false)
         {
@@ -174,6 +257,11 @@ namespace Neo4j.Map.Extension.Map
             return cypher;
         }
 
+
+        private static string CreateRelationQuery(this RelationNode relationNode)
+        {
+            return string.Empty;
+        }
         /// <summary>
         /// Generate cypher DELETE query
         /// </summary>

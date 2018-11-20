@@ -1,22 +1,63 @@
-﻿using System;
+﻿using Neo4j.Map.Extension.Attributes;
 using System.Collections.Generic;
-using System.Text;
+using System.Runtime.CompilerServices;
 
 namespace Neo4j.Map.Extension.Model
 {
-    public class RelationNode
+    /// <summary>
+    /// 
+    /// </summary>
+    public abstract class RelationNode<O, D> : Neo4jNode
+        where O : Neo4jNode
+        where D : Neo4jNode
     {
-        public string Name { get; }
 
-        public RelationNode(string name)
+        public RelationNode()
         {
-            Name = name;
+            Properties = new Dictionary<string, object>();
+        }
+        /// <summary>
+        /// 
+        /// </summary>
+        public O Origin { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public D Destiny { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [Neo4jProperty(Name = "type")]
+        public string RelationType { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public Dictionary<string, object> Properties { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="memberName"></param>
+        protected void SetPropertyValue(object value, [CallerMemberName] string memberName = "")
+        {
+            string propKey = memberName.ToLower();
+            if (Properties.ContainsKey(propKey))
+                Properties[propKey] = value;
+            else
+                Properties.Add(propKey, value);
         }
 
-        public Neo4jNode Origin { get; set; }
+        public override string ToString()
+        {
+            return $"({Origin.UUID})-[:{RelationType}]->({Destiny.UUID})";
+        }
+    }
 
-        public Neo4jNode Destiny { get; set; }
-
-        public Dictionary<string, object> Properties { get; set; }
+    public abstract class RelationNode : RelationNode<Neo4jNode, Neo4jNode>
+    {
     }
 }

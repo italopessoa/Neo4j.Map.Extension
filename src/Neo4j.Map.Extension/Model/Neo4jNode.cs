@@ -12,10 +12,7 @@ namespace Neo4j.Map.Extension.Model
         /// <summary>
         /// Node Id
         /// </summary>
-        public long Id
-        {
-            get; set;
-        }
+        public long Id { get; set; }
 
         /// <summary>
         /// Node UUID
