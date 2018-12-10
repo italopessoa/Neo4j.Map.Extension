@@ -108,7 +108,7 @@ namespace Neo4j.Map.Extension.Map
             return result;
         }
 
-        public static T MapRelation<T, O, D>(this IReadOnlyDictionary<string, object> values) 
+        public static T MapRelation<T, O, D>(this IReadOnlyDictionary<string, object> values)
             where T : Neo4jNode
             where O : Neo4jNode
             where D : Neo4jNode
@@ -169,6 +169,9 @@ namespace Neo4j.Map.Extension.Map
                 case CypherQueryType.Match:
                     query = MatchQuery(node);
                     break;
+                case CypherQueryType.MatchLike:
+                    query = MatchQuery(node);
+                    break;
             }
             return query;
         }
@@ -203,11 +206,63 @@ namespace Neo4j.Map.Extension.Map
                             values.Add(attr.Name, value);
                     }
                 }
+
+                StringBuilder properties = new StringBuilder();
+                foreach (KeyValuePair<string, object> keyValue in values)
+                {
+                    if (properties.Length > 0)
+                        properties.Append(", ");
+
+                    if (int.TryParse(keyValue.Value.ToString(), out int x))
+                        properties.Append($"{keyValue.Key}:{keyValue.Value}");
+                    //sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}={keyValue.Value} ");
+                    else
+                    {
+                        properties.Append($"{keyValue.Key}:'{keyValue.Value.ToString().Replace("'", @"\'")}'");
+                        //sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value.ToString().Replace("'", @"\'")}.*' ");
+                    }
+                }
+                cypher = $"MATCH (n:{labelName} {{{properties.ToString()}}}) RETURN n";
+            }
+
+            return cypher;
+        }
+
+        private static string MatchLikeQuery<T>(T node) where T : Neo4jNode
+        {
+            string labelName = string.Empty;
+            string cypher = string.Empty;
+            Neo4jLabelAttribute label = node.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null)
+            {
+                labelName = label.Name;
+            }
+            var uuidProp = node.GetType().GetProperties().FirstOrDefault(p => p.Name.Equals("UUID", StringComparison.InvariantCultureIgnoreCase));
+            if (!String.IsNullOrEmpty(uuidProp?.GetValue(node)?.ToString()))
+            {
+                cypher = $"MATCH (n:{labelName} {{uuid: '{uuidProp.GetValue(node)}'}}) RETURN n";
+            }
+            else
+            {
+                StringBuilder sb = new StringBuilder();
+                Dictionary<string, object> values = new Dictionary<string, object>();
+                foreach (PropertyInfo propInfo in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+                {
+                    Neo4jPropertyAttribute attr = propInfo.GetCustomAttribute<Neo4jPropertyAttribute>();
+                    var value = propInfo.GetValue(node);
+                    if (attr != null && value != null)
+                    {
+                        if (propInfo.PropertyType.IsEnum)
+                            values.Add(attr.Name, TryGetEnumValueDescription(propInfo, value));
+                        else
+                            values.Add(attr.Name, value);
+                    }
+                }
                 foreach (KeyValuePair<string, object> keyValue in values)
                 {
                     if (int.TryParse(keyValue.Value.ToString(), out int x))
                         sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}={keyValue.Value} ");
-                    else sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value}.*' ");
+                    else sb.Append($" {(sb.Length > 0 ? " AND " : string.Empty)} n.{keyValue.Key}=~'(?i).*{keyValue.Value.ToString().Replace("'", @"\'")}.*' ");
                 }
                 cypher = $"MATCH (n:{labelName}) WHERE {sb.ToString()} RETURN n";
             }
@@ -229,6 +284,7 @@ namespace Neo4j.Map.Extension.Map
             {
                 labelName = label.Name;
             }
+
             Dictionary<string, object> values = new Dictionary<string, object>();
             foreach (PropertyInfo propInfo in node.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
             {
@@ -248,19 +304,40 @@ namespace Neo4j.Map.Extension.Map
             string comma = "";
             foreach (KeyValuePair<string, object> keyValue in values)
             {
-                sb.Append($"{comma}{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
+                if (keyValue.Value.GetType() == typeof(Int64))
+                    sb.Append($"{comma}{keyValue.Key}: {keyValue.Value}");
+                else if (int.TryParse(keyValue.Value.ToString(), out int intValue))
+                    sb.Append($"{comma}{keyValue.Key}: {keyValue.Value}");
+                else if (keyValue.Value.GetType() == typeof(string))
+                    sb.Append($"{comma}{keyValue.Key}: \"{keyValue.Value.ToString().Replace("\"", "\\\"")}\"");
                 comma = ", ";
             }
             sb.Append("}) RETURN n");
 
-            string cypher = sb.ToString().Replace("\"", "'");
-            return cypher;
+            return sb.ToString();
         }
 
 
-        private static string CreateRelationQuery(this RelationNode relationNode)
+        public static string CreateRelationQuery<O, D>(this RelationNode<O, D> relationNode)
+             where O : Neo4jNode
+            where D : Neo4jNode
         {
-            return string.Empty;
+            string originLabel = string.Empty;
+            string destinyLabel = string.Empty;
+
+            Neo4jLabelAttribute label = relationNode.Origin.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null) originLabel = label.Name;
+
+            label = relationNode.Destiny.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
+            if (label != null) destinyLabel = label.Name;
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append($"MATCH (o:{originLabel}{{uuid:'{relationNode.Origin.UUID}'}}), ");
+            sb.Append($" (d:{destinyLabel}{{uuid:'{relationNode.Destiny.UUID}'}}) ");
+            sb.Append($"CREATE (o)-[r:{relationNode.RelationType}]->(d) ");
+            sb.Append("return o,d,r ");
+
+            return sb.ToString();
         }
         /// <summary>
         /// Generate cypher DELETE query

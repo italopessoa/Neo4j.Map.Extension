@@ -9,6 +9,7 @@ namespace Neo4j.Map.Extension.Model
         Create,
         Merge,
         Delete,
-        Match
+        Match,
+        MatchLike
     }
 }

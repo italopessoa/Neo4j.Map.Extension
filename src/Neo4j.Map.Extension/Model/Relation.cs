@@ -16,6 +16,13 @@ namespace Neo4j.Map.Extension.Model
         {
             Properties = new Dictionary<string, object>();
         }
+
+        public RelationNode(O origin, D destiny)
+        {
+            Properties = new Dictionary<string, object>();
+            Origin = origin;
+            Destiny = destiny;
+        }
         /// <summary>
         /// 
         /// </summary>
@@ -57,7 +64,7 @@ namespace Neo4j.Map.Extension.Model
         }
     }
 
-    public abstract class RelationNode : RelationNode<Neo4jNode, Neo4jNode>
-    {
-    }
+    //public abstract class RelationNode : RelationNode<Neo4jNode, Neo4jNode>
+    //{
+    //}
 }
