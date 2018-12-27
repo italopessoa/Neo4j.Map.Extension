@@ -14,6 +14,8 @@ namespace Neo4j.Map.Extension.Samples.Models
         [JsonProperty("hahaha")]
         public Ocuppation Ocuppation { get; set; }
 
+        [Neo4jProperty(Name = "roles")]
+        public string[] Roles { get; set; }
         public override string ToString()
         {
             return $"Person {{Employee: '{UUID}', Name: '{Name}', Occupation: '{Ocuppation}'}}";

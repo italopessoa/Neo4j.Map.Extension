@@ -1,4 +1,5 @@
 ﻿using Neo4j.Map.Extension.Attributes;
+using Neo4j.Map.Extension.Map;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -56,11 +57,6 @@ namespace Neo4j.Map.Extension.Model
                 Properties[propKey] = value;
             else
                 Properties.Add(propKey, value);
-        }
-
-        public override string ToString()
-        {
-            return $"({Origin.UUID})-[:{RelationType}]->({Destiny.UUID})";
         }
     }
 

@@ -13,7 +13,7 @@ namespace Neo4j.Map.Extension.Samples
         static void Main(string[] args)
         {
             //Console.WriteLine("Creating sample data");
-            //CreateSampleNodes();
+            CreateSampleNodes();
             //Sample1().GetAwaiter();
             //Sample2().GetAwaiter();
             //Console.ReadKey();
@@ -24,8 +24,8 @@ namespace Neo4j.Map.Extension.Samples
             //Console.WriteLine("Generate cypher query");
             //Sample3().GetAwaiter();
             //Sample4().GetAwaiter();
-            //Sample5().GetAwaiter();
-            new MapRelation().Find();
+            Sample5().GetAwaiter();
+            //new MapRelation().Find();
             Console.ReadKey();
 
         }
@@ -56,7 +56,8 @@ namespace Neo4j.Map.Extension.Samples
             Employee employee = new Employee
             {
                 Name = "employee name",
-                Ocuppation = Ocuppation.Carpenter
+                Ocuppation = Ocuppation.Carpenter,
+                Roles = new string[] { "RA", "RB" }
             };
             Console.WriteLine(sample3.CreationQuery(employee));
         }
@@ -80,13 +81,13 @@ namespace Neo4j.Map.Extension.Samples
             {
                 Console.WriteLine(node);
                 node.UUID = null;
-                Console.WriteLine(node.MapToCypher(Model.CypherQueryType.Match));
+                Console.WriteLine(node.MapToCypher(CypherQueryType.Match));
             }
         }
 
         static void CreateSampleNodes()
         {
-            IDriver driver = GraphDatabase.Driver("bolt://127.0.0.1:7687", AuthTokens.None);
+            IDriver driver = GraphDatabase.Driver("bolt://127.0.0.1:7687", AuthTokens.Basic("neo4j","bitcoinshow"));
             using (ISession session = driver.Session(AccessMode.Write))
             {
                 session.Run("CREATE (:Person {name:'Person 1'})");
@@ -94,15 +95,15 @@ namespace Neo4j.Map.Extension.Samples
                 session.Run("CREATE (:Person {name:'Person 3'})");
                 session.Run("CREATE (:Person {name:'Person 4'})");
 
-                session.Run("CREATE (:Employee {name:'Employee 1', occupation:'Car Mechanic' })");
-                session.Run("CREATE (:Employee {name:'Employee 2', occupation:'Doctor'})");
-                session.Run("CREATE (:Employee {name:'Employee 3', occupation:'Carpenter'})");
+                session.Run("CREATE (:Employee {name:'Employee 1', occupation:'Car Mechanic', roles:['RA', 'RB']})");
+                session.Run("CREATE (:Employee {name:'Employee 2', occupation:'Doctor', roles:['RA', 'RB']})");
+                session.Run("CREATE (:Employee {name:'Employee 3', occupation:'Carpenter', roles:['RA', 'RB']})");
 
             }
             using (ISession session = driver.Session(AccessMode.Write))
             {
                 IStatementResult result = session.Run("match (n {uuid: 'b6d1eca0-2fe4-11e8-bcfe-2cd05a628834'}) detach delete n");
-            } 
+            }
         }
 
         static void DeleteSampleNodes()
