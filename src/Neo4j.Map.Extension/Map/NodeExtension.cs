@@ -16,6 +16,10 @@ namespace Neo4j.Map.Extension.Map
     /// </summary>
     public static class NodeExtension
     {
+        private const string ORIGIN_NODE = "origin";
+        private const string DESTINY_NODE = "destiny";
+        private const string RELATION_NODE = "relation";
+
         /// <summary>
         /// Map Neo4j node to a custom classe
         /// </summary>
@@ -72,11 +76,12 @@ namespace Neo4j.Map.Extension.Map
             where D : Neo4jNode
             where T : Neo4jNode//TODO: fix
         {
-            IDictionary<string, string> neo4jModelProperties = GetNeo4jNodeProperties<T>();
+            IDictionary<string, string> neo4jModelProperties = GetNeo4jRelationProperties<T>();
 
             T result = (T)Activator.CreateInstance(typeof(T));
 
             IRelationship nodeAux = node as IRelationship;
+            Dictionary<string, object> properties = new Dictionary<string, object>();
             foreach (KeyValuePair<string, string> property in neo4jModelProperties)
             {
                 if (nodeAux.Properties.ContainsKey(property.Key))
@@ -100,8 +105,7 @@ namespace Neo4j.Map.Extension.Map
                     }
                     catch (Exception ex)
                     {
-
-                        throw;
+                        throw ex;
                     }
                 }
             }
@@ -121,9 +125,9 @@ namespace Neo4j.Map.Extension.Map
         {
             IDictionary<string, string> neo4jModelProperties = GetNeo4jNodeProperties<T>();
 
-            O originValue = values["origin"].Map<O>();
-            D destinyValue = values["destiny"].Map<D>();
-            T relation = values["relation"].MapRelation<T, O, D>();
+            O originValue = values[ORIGIN_NODE].Map<O>();
+            D destinyValue = values[DESTINY_NODE].Map<D>();
+            T relation = values[RELATION_NODE].MapRelation<T, O, D>();
 
             PropertyInfo originPropertyInfo = relation.GetType().GetProperty("Origin");
             PropertyInfo destinyPropertyInfo = relation.GetType().GetProperty("Destiny");
@@ -150,6 +154,26 @@ namespace Neo4j.Map.Extension.Map
 
             return neo4jModelProperties;
         }
+
+        private static IDictionary<string, string> GetNeo4jRelationProperties<T>()
+            where T : Neo4jNode
+        {
+            IDictionary<string, string> neo4jModelProperties = new Dictionary<string, string>();
+            foreach (PropertyInfo propInfo in typeof(T).GetProperties())
+            {
+                IEnumerable<Neo4jRelationPropertyAttribute> attrs = propInfo.GetCustomAttributes<Neo4jRelationPropertyAttribute>(false);
+                foreach (Neo4jRelationPropertyAttribute attr in attrs)
+                {
+                    string propName = propInfo.Name;
+                    string neo4jAttr = attr.Name;
+                    neo4jModelProperties.Add(neo4jAttr, propName);
+                }
+            }
+
+            return neo4jModelProperties;
+        }
+
+
 
         /// <summary>
         /// Generate cypher query from object model
@@ -309,7 +333,7 @@ namespace Neo4j.Map.Extension.Map
             string labelName = node.GetLabel();
             string cypher = string.Empty;
             var uuidProp = node.GetType().GetProperties().FirstOrDefault(p => p.Name.Equals("UUID", StringComparison.InvariantCultureIgnoreCase));
-            if (!String.IsNullOrEmpty(uuidProp?.GetValue(node)?.ToString()))
+            if (!string.IsNullOrEmpty(uuidProp?.GetValue(node)?.ToString()))
             {
                 cypher = $"MATCH (n:{labelName} {{uuid: '{uuidProp.GetValue(node)}'}}) RETURN n";
             }
@@ -381,7 +405,7 @@ namespace Neo4j.Map.Extension.Map
                     //if (int.TryParse(keyValue.Value.ToString(), out int x) && !int.TryParse(keyValue.Value.ToString().Substring(0, 1), out int z))
                     //    throw new Exception("NODE WITH ERROR");
                     //else
-                        properties.Add($"{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
+                    properties.Add($"{keyValue.Key}: {JsonConvert.SerializeObject(keyValue.Value)}");
 
                 }
             }
@@ -393,41 +417,158 @@ namespace Neo4j.Map.Extension.Map
             return sb.ToString();
         }
 
-
         public static string CreateRelationQuery<O, D>(this RelationNode<O, D> relationNode)
              where O : Neo4jNode
             where D : Neo4jNode
         {
-            string originLabel = string.Empty;
-            string destinyLabel = string.Empty;
-
-            Neo4jLabelAttribute label = relationNode.Origin.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
-            if (label != null) originLabel = label.Name;
-
-            label = relationNode.Destiny.GetType().GetCustomAttribute<Neo4jLabelAttribute>();
-            if (label != null) destinyLabel = label.Name;
+            string originLabel = relationNode.Origin.GetLabel();
+            string destinyLabel = relationNode.Destiny.GetLabel();
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"MATCH (o:{originLabel}), (d:{destinyLabel})");
-            sb.AppendLine("WHERE ");
+            sb.AppendLine($"MATCH ({ORIGIN_NODE}:{originLabel}), ({DESTINY_NODE}:{destinyLabel})");
+            sb.Append("WHERE ");
 
             if (relationNode.Origin.Id > 0 && string.IsNullOrEmpty(relationNode.Origin.UUID))
-                sb.Append($"ID (o) = {relationNode.Origin.Id}");
+                sb.Append($"ID ({ORIGIN_NODE}) = {relationNode.Origin.Id}");
             else
-                sb.Append($"o.uuid = '{relationNode.Origin.UUID}'");
+                sb.Append($"{ORIGIN_NODE}.uuid = '{relationNode.Origin.UUID}'");
 
             sb.Append(" AND ");
 
             if (string.IsNullOrEmpty(relationNode.Destiny.UUID) && relationNode.Destiny.Id > 0)
-                sb.Append($"ID (d) = {relationNode.Destiny.Id}");
+                sb.Append($"ID ({DESTINY_NODE}) = {relationNode.Destiny.Id}");
             else
-                sb.Append($"d.uuid = '{relationNode.Destiny.UUID}'");
+                sb.AppendLine($"{DESTINY_NODE}.uuid = '{relationNode.Destiny.UUID}'");
 
-            sb.AppendLine($" CREATE (o)-[r:{relationNode.RelationType}]->(d) ");
-            sb.AppendLine("RETURN o,d,r ");
+            List<string> propertiesFilter = new List<string>();
+            PropertyInfo[] nodeProperties = relationNode.GetType().GetProperties();
+            for (int i = 0; i < nodeProperties.Length; i++)
+            {
+                PropertyInfo property = nodeProperties[i];
+                Neo4jRelationPropertyAttribute attr = property.GetCustomAttribute<Neo4jRelationPropertyAttribute>();
+
+                var value = property.GetValue(relationNode);
+
+                if (attr != null && value != null)
+                {
+                    if (property.PropertyType.IsEnum)
+                    {
+                        propertiesFilter.Add($"{attr.Name}: {TryGetEnumValueDescription(property, value)}");
+                    }
+                    else if (property.PropertyType.IsArray)
+                    {
+                        string[] arrayValue = (string[])value;
+                        //values.Add(attr.Name, $"[{arrayValue.Select( string.Join(", ", arrayValue)}]'");
+                    }
+                    else
+                    {
+                        if (int.TryParse(value.ToString(), out int x) && int.TryParse(value.ToString().Substring(0, 1), out int z))
+                            propertiesFilter.Add($"{attr.Name}: {value.ToString()}");
+                        else
+                            propertiesFilter.Add($"{attr.Name}: '{value.ToString().Replace("'", @"\'")}'");
+                    }
+                }
+            }
+
+            sb.Append($"CREATE UNIQUE ({ORIGIN_NODE})-[{RELATION_NODE}:{relationNode.RelationType} {{{string.Join(", ", propertiesFilter)}}}]->({DESTINY_NODE}) ");
+            sb.Append($"RETURN {ORIGIN_NODE},{DESTINY_NODE},{RELATION_NODE};");
 
             return sb.ToString();
         }
+
+        public static string CreateUpdateRelationQuery<O, D>(this RelationNode<O, D> relationNode)
+             where O : Neo4jNode
+            where D : Neo4jNode
+        {
+            string originLabel = relationNode.Origin.GetLabel();
+            string destinyLabel = relationNode.Destiny.GetLabel();
+
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine($"MATCH ({ORIGIN_NODE}:{originLabel})-[{RELATION_NODE}:{relationNode.RelationType}]-({DESTINY_NODE}:{destinyLabel})");
+            sb.Append("WHERE ");
+
+            if (relationNode.Origin.Id > 0 && string.IsNullOrEmpty(relationNode.Origin.UUID))
+                sb.Append($"ID ({ORIGIN_NODE}) = {relationNode.Origin.Id}");
+            else
+                sb.Append($"{ORIGIN_NODE}.uuid = '{relationNode.Origin.UUID}'");
+
+            sb.Append(" AND ");
+
+            if (string.IsNullOrEmpty(relationNode.Destiny.UUID) && relationNode.Destiny.Id > 0)
+                sb.Append($"ID ({DESTINY_NODE}) = {relationNode.Destiny.Id}");
+            else
+                sb.AppendLine($"{DESTINY_NODE}.uuid = '{relationNode.Destiny.UUID}'");
+
+
+            sb.Append("SET ");
+            List<string> propertiesFilter = new List<string>();
+            PropertyInfo[] nodeProperties = relationNode.GetType().GetProperties();
+            for (int i = 0; i < nodeProperties.Length; i++)
+            {
+                PropertyInfo property = nodeProperties[i];
+                Neo4jRelationPropertyAttribute attr = property.GetCustomAttribute<Neo4jRelationPropertyAttribute>();
+
+                var value = property.GetValue(relationNode);
+
+                if (attr != null && value != null)
+                {
+                    if (property.PropertyType.IsEnum)
+                    {
+                        propertiesFilter.Add($"{RELATION_NODE}.{attr.Name}={TryGetEnumValueDescription(property, value)}");
+                    }
+                    else if (property.PropertyType.IsArray)
+                    {
+                        string[] arrayValue = (string[])value;
+                    }
+                    else
+                    {
+                        if (int.TryParse(value.ToString(), out int x) && int.TryParse(value.ToString().Substring(0, 1), out int z))
+                            propertiesFilter.Add($"{RELATION_NODE}.{attr.Name}={value.ToString()}");
+                        else
+                            propertiesFilter.Add($"{RELATION_NODE}.{attr.Name}='{value.ToString().Replace("'", @"\'")}'");
+                    }
+                }
+            }
+
+            sb.AppendLine($"{string.Join(", ", propertiesFilter)}");
+            sb.Append($"RETURN {ORIGIN_NODE},{DESTINY_NODE},{RELATION_NODE};");
+
+            return sb.ToString();
+        }
+
+        public static string CreateMatchRelationQuery<O, D>(this RelationNode<O, D> relationNode, RelationDirection direction = RelationDirection.None)
+             where O : Neo4jNode
+            where D : Neo4jNode
+        {
+            string originLabel = relationNode.Origin.GetLabel();
+            string destinyLabel = relationNode.Destiny.GetLabel();
+
+            StringBuilder sb = new StringBuilder();
+            string leftArrow = $"{(direction == RelationDirection.Left ? "<-" : "-") }";
+            string rightArrow = $"{(direction == RelationDirection.Right ? "->" : "-") }";
+            sb.Append($"MATCH ({ORIGIN_NODE}:{originLabel})")
+                .Append($"{leftArrow}")
+                .Append($"[{RELATION_NODE}:{relationNode.RelationType}]{rightArrow}")
+                .AppendLine($"({DESTINY_NODE}:{destinyLabel}) ");
+            sb.AppendLine("WHERE ");
+
+            if (relationNode.Origin.Id > 0 && string.IsNullOrEmpty(relationNode.Origin.UUID))
+                sb.Append($"ID ({ORIGIN_NODE}) = {relationNode.Origin.Id}");
+            else
+                sb.Append($"{ORIGIN_NODE}.uuid = '{relationNode.Origin.UUID}'");
+
+            sb.Append(" AND ");
+
+            if (string.IsNullOrEmpty(relationNode.Destiny.UUID) && relationNode.Destiny.Id > 0)
+                sb.Append($"ID ({DESTINY_NODE}) = {relationNode.Destiny.Id}");
+            else
+                sb.Append($"{DESTINY_NODE}.uuid = '{relationNode.Destiny.UUID}' ");
+
+            sb.AppendLine($"RETURN {ORIGIN_NODE},{DESTINY_NODE},{RELATION_NODE};");
+
+            return sb.ToString();
+        }
+
         /// <summary>
         /// Generate cypher DELETE query
         /// </summary>
@@ -495,5 +636,12 @@ namespace Neo4j.Map.Extension.Map
             }
             return null;
         }
+    }
+
+    public enum RelationDirection
+    {
+        None,
+        Right,
+        Left
     }
 }

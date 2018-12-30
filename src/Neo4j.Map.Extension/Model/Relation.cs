@@ -12,13 +12,12 @@ namespace Neo4j.Map.Extension.Model
         where O : Neo4jNode
         where D : Neo4jNode
     {
-
-        public RelationNode()
+        protected RelationNode()
         {
             Properties = new Dictionary<string, object>();
         }
 
-        public RelationNode(O origin, D destiny)
+        protected RelationNode(O origin, D destiny)
         {
             Properties = new Dictionary<string, object>();
             Origin = origin;
